@@ -50,3 +50,5 @@ var goban = RoundGoban('#goban', {
     }
 });
 ```
+
+![Round Goban](http://mokele.github.com/roundgoban/roundgoban2.png)
