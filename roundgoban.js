@@ -54,6 +54,7 @@ var RoundGoban = function(sel, opts) {
     var turn = Black;
     var callbacks = Callbacks();
     var enabled = true;
+    var stateEditable = false;
 
     var getPoint = function(x, y) {
         // todo: sort points by x and y coord
@@ -96,7 +97,12 @@ var RoundGoban = function(sel, opts) {
     // todo: refactor out into a Point object
     var repositionPoint = function(pointIndex) {
         var point = points[pointIndex];
-        repositionElement(point.element, point);
+        if(point.element) {
+            repositionElement(point.element, point);
+        }
+        if(point.overlay) {
+            repositionElement(point.overlay.element, point);
+        }
     };
     var place = function(pointIndex, stone, focus) {
         var point = points[pointIndex];
@@ -161,6 +167,48 @@ var RoundGoban = function(sel, opts) {
         offsetX = width / 2;
         offsetY = height / 2;
     };
+    var valueFun = function(point) {
+        return function() {
+            if(point.stone) {
+                if(!point.overlay) {
+                    return point.stone;
+                } else if(point.stone == White) {
+                    return 'WHITE_DEAD';
+                } else if(point.stone == Black) {
+                    return 'BLACK_DEAD';
+                }
+            } else if(!point.overlay) {
+                return 'EMPTY';
+            } else if(point.overlay.color == White) {
+                return 'BLACK_TERRITORY';
+            } else if(point.overlay.color == Black) {
+                return 'WHITE_TERRITORY';
+            }
+        }
+    };
+    var connectedFun = function(point) {
+        return function() {
+            var thisValue = point.value();
+            var thisNeighbours = $.extend(true, [], point.neighbours);
+            var thisConnected = [point.point]
+            var seen = [point.point];
+            while(thisNeighbours.length > 0) {
+                var neighbourIndex = thisNeighbours.shift();
+                if(seen.indexOf(neighbourIndex) != -1) {
+                    console.log("seen", neighbourIndex);
+                    continue;
+                }
+                seen.push(neighbourIndex);
+                var neighbour = points[neighbourIndex];
+                console.log("value", thisValue, neighbour.value());
+                if(neighbour.value() == thisValue) {
+                    thisNeighbours = thisNeighbours.concat(neighbour.neighbours);
+                    thisConnected.push(neighbourIndex);
+                }
+            }
+            return thisConnected;
+        };
+    };
 
     (function() {
         recalculateSize();
@@ -169,11 +217,10 @@ var RoundGoban = function(sel, opts) {
         element.append(canvas);
 
         canvas.mousemove(function(e) {
-            var containerOffset = container.offset();
-
             if(!enabled) {
                 return;
             }
+            var containerOffset = container.offset();
             var x = e.pageX - containerOffset.left;
             var y = e.pageY - containerOffset.top;
             var point = getPoint(x, y);
@@ -206,6 +253,18 @@ var RoundGoban = function(sel, opts) {
                 });
             } else {
                 ghostElement().remove();
+            }
+        });
+        $(document.body).click(function(e) {
+            if(!stateEditable) {
+                return;
+            }
+            var containerOffset = container.offset();
+            var x = e.pageX - containerOffset.left;
+            var y = e.pageY - containerOffset.top;
+            var point = getPoint(x, y);
+            if(point) {
+                callbacks.fire('stateEdit', point);
             }
         });
         //canvas.width(width);
@@ -332,6 +391,8 @@ var RoundGoban = function(sel, opts) {
                         point: pointIndex,
                         neighbours: neighbours
                     };
+                    point.value = valueFun(point);
+                    point.connected = connectedFun(point);
                 }
                 var hitArea = {
                     x: x - pointRadius,
@@ -344,9 +405,7 @@ var RoundGoban = function(sel, opts) {
                 point.hitArea = hitArea;
                 point.radius = pointRadius;
                 points[pointIndex] = point;
-                if(point.element) {
-                    repositionPoint(pointIndex);
-                }
+                repositionPoint(pointIndex);
 
                 if(inner) {
                     var from = point.point;
@@ -450,18 +509,39 @@ var RoundGoban = function(sel, opts) {
         }
     };
 
+    var setPointOverlay = function(pointIndex, overlayFun) {
+        var point = points[pointIndex];
+        if(point.overlay) {
+            point.overlay.element.remove();
+            point.overlay = null;
+        }
+        var overlay = overlayFun(point.stone);
+        var diameter = point.radius * 2;
+        overlay.element.width(diameter);
+        overlay.element.height(diameter);
+        overlay.element.css({
+            left: point.x - point.radius,
+            top: point.y - point.radius
+        });
+        element.append(overlay.element);
+        point.overlay = overlay;
+    };
+
     return {
         type: 'round',
         size: function() {
             return n;
         },
-        stateEditable: function() {},
-        stateEdit: function() {},
+        stateEditable: function() {
+            stateEditable = true;
+        },
+        stateEdit: callbacks.callback('stateEdit'),
         setTurn: function(nextTurn) {
             turn = nextTurn;
         },
         disable: function() {
             enabled = false;
+            stateEditable = false;
         },
         enable: function() {
             enabled = true;
@@ -469,13 +549,19 @@ var RoundGoban = function(sel, opts) {
         placed: callbacks.callback('placed'),
         removeCallback: callbacks.removeCallback,
         clear: clear,
-        defocusPoint: function(point) {
+        defocusPoint: function(pointIndex) {
             if(lastFocusedPoint) {
                 lastFocusedOverlay.element.remove();
                 lastFocusedOverlay = null;
                 lastFocusedPoint = null;
             }
+            var point = points[pointIndex];
+            if(point.overlay) {
+                point.overlay.element.remove();
+                delete point.overlay;
+            }
         },
+        setPointOverlay: setPointOverlay,
         resetToSize: function(toSize) {
             // todo: support other sizes other than 9
         },
