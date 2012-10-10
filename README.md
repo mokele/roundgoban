@@ -11,6 +11,16 @@ I was asked by a friend to adapt this into a piece of art to hang on a wall,
 so there are now some options for playing about with.
 
 ```javascript
+var size = 9;
+var outer = function(from, to) {
+    return from <= size && to < size;
+};
+var inner = function(from, to) {
+    return from >= size*(size-1) && to >= size*(size-1);
+};
+var spiral = function(from, to, mod, s) {
+    return (from % size) % mod == s && to == from+size;
+};
 var goban = RoundGoban('#goban', {
     labels: false,
     outerCircle: true,
