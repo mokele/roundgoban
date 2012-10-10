@@ -5,7 +5,7 @@
 var goban = RoundGoban('#goban');
 ```
 
-![Round Goban](mokele.co.uk/roundgoban/roundgoban.png)
+![Round Goban](http://mokele.github.com/roundgoban/roundgoban.png)
 
 I was asked by a friend to adapt this into a piece of art to hang on a wall,
 so there are now some options for playing about with.
