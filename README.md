@@ -48,5 +48,5 @@ var goban = RoundGoban('#goban', {
             return '#BBBBBB';
         }
     }
-};
+});
 ```
