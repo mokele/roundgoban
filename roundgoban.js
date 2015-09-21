@@ -1,6 +1,11 @@
 
 var RoundGoban = function(opts) {
-    this.opts = $.extend(RoundGoban.defaultOpts, opts ? opts : {});
+    this.opts = opts ? opts : {};
+    for(var k in RoundGoban.defaultOpts) {
+        if(opts[k] === undefined) {
+            opts[k] = RoundGoban.defaultOpts[k];
+        }
+    }
 
     this.offsetX = 0;
     this.offsetY = 0;
