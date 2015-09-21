@@ -11,7 +11,11 @@ var RoundGoban = function(opts) {
 RoundGoban.defaultOpts = {
     labels: true,
     lineWidthMultiplier: function(from, to) {
-        return 1;
+        if(from < 9 && to < 9) {
+            return 2;
+        } else {
+            return 1;
+        }
     },
     outerCircle: true,
     strokeStyle: function(from, to) {
@@ -59,25 +63,25 @@ RoundGoban.prototype.redraw = function(goban) {
 
     var loopRadius = this.radius;
     if(this.opts.outerCircle) {
-        ctx.beginPath();
-        var lastAngle = 0;
+        var lastAngle = -0.18;
         var stepAngle = (Math.PI*2) / this.size;
         for(var i=0; i<this.size; i++) {
+            ctx.beginPath();
             var angle = lastAngle + stepAngle;
-            var from = i+1;
+            var from = i;
             var to = from + 1;
-            if(to == this.size+1) {
+            if(to == this.size) {
                 to = 1;
             }
+
             ctx.strokeStyle = this.opts.strokeStyle(from, to);
             ctx.lineWidth = (defaultLineWidth + lineWidthAddition);
             ctx.lineWidth *= this.opts.lineWidthMultiplier(from, to);
 
-            ctx.arc(this.offsetX, this.offsetY, loopRadius, lastAngle, angle, true); 
+            ctx.arc(this.offsetX, this.offsetY, loopRadius, lastAngle, angle); 
             lastAngle = angle;
+            ctx.stroke();
         }
-        ctx.closePath();
-        ctx.stroke();
     }
     var pointIndex = 0;
 
